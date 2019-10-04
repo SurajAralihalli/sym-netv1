@@ -1,5 +1,7 @@
 import argparse
 from symnet.numeric import NumericModel
+from symnet.image import ResNet
+from symnet.regression import RegressionModel
 
 parser = argparse.ArgumentParser(
     description='Train a deep learning model on your dataset.',
@@ -17,6 +19,7 @@ parser.add_argument('--batch-size', type=int, default=64, help='Batch size')
 parser.add_argument('--train-split', type=float, default=0.7, help='Split to use for training')
 parser.add_argument('--epochs', type=int, default=100, help='Number of epochs')
 parser.add_argument('--no-balance', action='store_true', help='Do not rebalance classes')
+parser.add_argument('--no-augment', action='store_true', help='Do not augment data for image datasets')
 
 
 def main():
@@ -31,10 +34,19 @@ def main():
     train_split = args.train_split
     n_epochs = args.epochs
     balance = not args.no_balance
+    augment = not args.no_augment
 
-    if args.data_type == 'numeric':
+    if task=='regression':
+        model=RegressionModel(args.dataset, n_classes=num_classes, label_column=labels, task=task, header=has_header,
+                             activation=activation, bs=bs, train_size=train_split, epochs=n_epochs, balance=balance)
+
+    elif args.data_type == 'numeric':
         model = NumericModel(args.dataset, n_classes=num_classes, label_column=labels, task=task, header=has_header,
                              activation=activation, bs=bs, train_size=train_split, epochs=n_epochs, balance=balance)
+    elif args.data_type == 'image':
+        # Default to ResNet110 v2
+        model = ResNet(args.dataset, label_column=labels, header=has_header, augment_data=augment, n=12, version=2,
+                       n_classes=num_classes, bs=bs, activation=activation)
 
     model.fit()
     loss, accuracy = model.score()
